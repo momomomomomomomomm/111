@@ -111,6 +111,8 @@
 
 <audio id="backgroundMusic" src="background.mp3" loop></audio>
 <audio id="clickSound" src="click.mp3"></audio>
+<audio id="countdownSound" src="countdown.wav"></audio>
+<audio id="gameOverSound" src="gameover.wav"></audio>
 
 <script>
     let target = document.getElementById('target');
@@ -122,6 +124,8 @@
     let overlay = document.getElementById('overlay');
     let backgroundMusic = document.getElementById('backgroundMusic');
     let clickSound = document.getElementById('clickSound');
+    let countdownSound = document.getElementById('countdownSound');
+    let gameOverSound = document.getElementById('gameOverSound');
     let timeoutId;
     let startTime;
     let bestTime = Infinity;
@@ -135,6 +139,7 @@
     const clickThreshold = 50;
     const timeThreshold = 5; // 毫秒
     const positionThreshold = 10; // 像素
+    let gameStarted = false;
 
     function setDifficulty() {
         const difficulty = difficultySelector.value;
@@ -154,6 +159,7 @@
     }
 
     function startGame() {
+        if (gameStarted) return; // 防止重复开始游戏
         setDifficulty();
         message.textContent = '';
         scoreBoard.textContent = '';
@@ -168,6 +174,7 @@
         totalTime = 0;
         clickCount = 0;
         backgroundMusic.play();
+        gameStarted = true;
         nextRound();
     }
 
@@ -187,6 +194,8 @@
         target.style.position = 'absolute';
         moveTarget();
         startTime = Date.now();
+        // 播放倒计时音效
+        countdownSound.play();
     }
 
     function moveTarget() {
@@ -213,6 +222,7 @@
     }
 
     function handleClick(event) {
+        if (!gameStarted) return; // 防止在游戏未开始时点击
         const currentTime = Date.now();
         const timeDifference = currentTime - lastClickTime;
         const currentClickPosition = { x: event.clientX, y: event.clientY };
@@ -243,7 +253,7 @@
         lastClickTime = currentTime;
         lastClickPosition = currentClickPosition;
 
-        if (event.target !== target) {
+        if (event.target!== target) {
             message.textContent = '请不要在目标出现前点击页面其他地方！';
             return;
         }
@@ -254,8 +264,8 @@
         target.style.display = 'none'; // 点击后隐藏目标
         clearTimeout(timeoutId);
 
-        // 更新分数
-        score += Math.max(0, 1000 - reactionTime);
+        // 优化得分计算，根据反应时间的比例得分
+        score += Math.floor((1000 - reactionTime) / 10);
         if (reactionTime < bestTime) {
             bestTime = reactionTime;
         }
@@ -264,6 +274,7 @@
     }
 
     function endGame() {
+        if (!gameStarted) return; // 防止在游戏未开始时结束游戏
         totalTime = Date.now() - startTime;
         message.textContent += `\n游戏结束! 最佳反应时间: ${bestTime} 毫秒\n总游戏时间: ${totalTime} 毫秒\n总得分: ${score}`;
         scoreBoard.textContent = `总得分: ${score}`;
@@ -274,6 +285,9 @@
         backgroundMusic.pause();
         backgroundMusic.currentTime = 0;
         clickCount = 0; // 重置点击计数
+        gameStarted = false;
+        // 播放游戏结束音效
+        gameOverSound.play();
     }
 
     // 事件监听器
@@ -283,6 +297,15 @@
             handleClick(event);
         } else if (overlay.style.display === 'block') {
             message.textContent = '请不要在目标出现前点击页面其他地方！';
+        }
+    });
+
+    // 反作弊机制
+    document.addEventListener('click', () => {
+        clickCount++;
+        if (clickCount > 50) {
+            message.textContent = '作弊检测到，游戏结束！';
+            endGame();
         }
     });
 
