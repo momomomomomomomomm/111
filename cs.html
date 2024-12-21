@@ -3,234 +3,241 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>反应力测试游戏</title>
+    <title>高级反应力测试</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            background-color: #f4f4f9;
-            margin: 0;
-            padding: 0;
             display: flex;
-            flex-direction: column;
-            align-items: center;
             justify-content: center;
+            align-items: center;
             height: 100vh;
+            margin: 0;
+            background-color: #e0f7fa;
+            overflow: hidden;
+            transition: transform 1s;
         }
-        #game-container {
-            width: 80%;
-            max-width: 600px;
-            background-color: #fff;
+        #gameContainer {
+            text-align: center;
+            background-color: #ffffff;
+            padding: 20px;
             border-radius: 10px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            padding: 20px;
-            box-sizing: border-box;
-        }
-        .button {
-            padding: 10px 20px;
-            margin: 10px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-        .button-primary {
-            background-color: #007bff;
-            color: white;
-        }
-        .button-secondary {
-            background-color: #6c757d;
-            color: white;
-        }
-        #timer, #score {
-            font-size: 24px;
-            margin: 10px;
-        }
-        #instructions {
-            margin-bottom: 20px;
-            font-size: 18px;
-        }
-        @media (max-width: 600px) {
-            .button {
-                font-size: 14px;
-                padding: 8px 16px;
-            }
-            #instructions {
-                font-size: 16px;
-            }
-        }
-        #target {
-            position: absolute;
-            width: 100px;
-            height: 100px;
-            background-color: red;
-            cursor: pointer;
-            display: none; /* 默认隐藏 */
-            border-radius: 50%;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-        }
-        #gameArea {
             position: relative;
-            width: 100%;
-            height: 300px;
-            background-color: #e9ecef;
-            border-radius: 10px;
+            width: 80vw;
+            height: 80vh;
             overflow: hidden;
         }
-        #leaderboard {
-            margin-top: 20px;
-            text-align: left;
+        #startButton, #difficultySelect {
+            margin: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
         }
-        #leaderboard h2 {
-            margin-bottom: 10px;
-        }
-        #leaderboard ul {
-            list-style-type: none;
-            padding: 0;
-        }
-        #leaderboard li {
-            background-color: #f8f9fa;
-            margin: 5px 0;
+        .target {
+            display: none;
             padding: 10px;
-            border-radius: 5px;
+            border-radius: 50%;
+            cursor: pointer;
+            position: absolute;
+        }
+        .trueTarget {
+            background-color: #ff5252;
+        }
+        .falseTarget {
+            background-color: #9e9e9e;
+        }
+        #result {
+            margin-top: 20px;
+            font-size: 18px;
+        }
+        #timer {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 18px;
         }
     </style>
 </head>
 <body>
-    <div id="game-container">
-        <h1>反应力测试游戏</h1>
-        <div id="instructions">选择难度后点击“开始游戏”按钮。点击目标方块以获得积分。注意：点击页面超过50次会被认为是作弊，游戏将结束。</div>
-        <div>
-            <button class="button button-secondary" onclick="selectDifficulty('easy')">简单</button>
-            <button class="button button-secondary" onclick="selectDifficulty('medium')">中等</button>
-            <button class="button button-secondary" onclick="selectDifficulty('hard')">困难</button>
-        </div>
-        <button class="button button-primary" id="startButton" onclick="startGame()">开始游戏</button>
-        <div id="timer">时间: 0秒</div>
-        <div id="score">积分: 0</div>
-        <div id="gameArea"></div>
-        <div id="leaderboard">
-            <h2>排行榜</h2>
-            <ul id="leaderboardList"></ul>
-        </div>
+    <div id="gameContainer">
+        <h1>高级反应力测试</h1>
+        <select id="difficultySelect">
+            <option value="easy">简单</option>
+            <option value="medium">中等</option>
+            <option value="hard">困难</option>
+            <option value="hell">地狱</option>
+        </select>
+        <button id="startButton">开始游戏</button>
+        <div id="result"></div>
+        <div id="timer">时间: 0 秒</div>
     </div>
 
     <script>
-        let difficulty = 'easy';
+        const startButton = document.getElementById('startButton');
+        const difficultySelect = document.getElementById('difficultySelect');
+        const result = document.getElementById('result');
+        const timerDisplay = document.getElementById('timer');
+        const gameContainer = document.getElementById('gameContainer');
+        const body = document.body;
+
+        let gameInterval;
+        let gameTime = 0;
         let score = 0;
-        let timeLeft = 0;
-        let timerInterval;
+        let totalReactionTime = 0;
         let clickCount = 0;
-        let targetVisible = false;
-        let leaderboard = JSON.parse(localStorage.getItem('leaderboard')) || [];
+        let targetCount, targetSize, targetSpeed, maxDelay;
 
-        function selectDifficulty(level) {
-            difficulty = level;
-            document.getElementById('startButton').disabled = false;
-        }
-
-        function startGame() {
-            if (timeLeft > 0) return;
-            document.getElementById('startButton').disabled = true;
-            document.getElementById('gameArea').style.display = 'block';
+        startButton.addEventListener('click', () => {
+            startButton.style.display = 'none';
+            result.textContent = '';
             score = 0;
-            timeLeft = difficulty === 'easy' ? 30 : (difficulty === 'medium' ? 20 : 15);
-            document.getElementById('score').innerText = `积分: ${score}`;
-            document.getElementById('timer').innerText = `时间: ${timeLeft}秒`;
-            timerInterval = setInterval(updateTimer, 1000);
-            spawnTarget();
-        }
+            gameTime = 0;
+            totalReactionTime = 0;
+            clickCount = 0;
+            timerDisplay.textContent = '时间: 0 秒';
 
-        function updateTimer() {
-            timeLeft--;
-            document.getElementById('timer').innerText = `时间: ${timeLeft}秒`;
-            if (timeLeft <= 0) {
-                endGame();
+            const difficulty = difficultySelect.value;
+            switch (difficulty) {
+                case 'easy':
+                    maxDelay = 5000;
+                    targetSize = 100;
+                    targetCount = 1;
+                    targetSpeed = 3000;
+                    break;
+                case 'medium':
+                    maxDelay = 3000;
+                    targetSize = 80;
+                    targetCount = 1;
+                    targetSpeed = 2000;
+                    break;
+                case 'hard':
+                    maxDelay = 2000;
+                    targetSize = 60;
+                    targetCount = 1;
+                    targetSpeed = 1500;
+                    break;
+                case 'hell':
+                    maxDelay = 1000;
+                    targetSize = 40;
+                    targetCount = 5;
+                    targetSpeed = 1000;
+                    break;
+            }
+
+            gameInterval = setInterval(() => {
+                gameTime++;
+                timerDisplay.textContent = `时间: ${gameTime} 秒`;
+                if (gameTime >= 30) {
+                    endGame();
+                }
+                if (difficulty === 'hell' && Math.random() < 0.1) {
+                    triggerRandomEvent();
+                }
+            }, 1000);
+
+            spawnTargets();
+        });
+
+        function spawnTargets() {
+            for (let i = 0; i < targetCount; i++) {
+                setTimeout(() => {
+                    createTarget(i === 0);
+                }, Math.random() * maxDelay);
             }
         }
 
-        function spawnTarget() {
-            const target = document.getElementById('target');
-            const gameArea = document.getElementById('gameArea');
-            const maxX = gameArea.offsetWidth - target.offsetWidth;
-            const maxY = gameArea.offsetHeight - target.offsetHeight;
+        function createTarget(isTrueTarget) {
+            const target = document.createElement('div');
+            target.className = 'target';
+            target.style.width = targetSize + 'px';
+            target.style.height = targetSize + 'px';
+            target.classList.add(isTrueTarget ? 'trueTarget' : 'falseTarget');
+            gameContainer.appendChild(target);
+            moveTarget(target);
 
-            // 设置随机位置
-            target.style.left = Math.random() * maxX + 'px';
-            target.style.top = Math.random() * maxY + 'px';
-
-            // 显示目标方块
-            target.style.display = 'block';
-            targetVisible = true;
-
-            // 随机延迟生成下一个目标方块
-            setTimeout(() => {
-                if (timeLeft > 0 && !targetVisible) {
-                    spawnTarget();
+            target.addEventListener('click', () => {
+                if (isTrueTarget) {
+                    const reactionTime = Date.now() - startTime;
+                    score++;
+                    totalReactionTime += reactionTime;
+                    clickCount++;
+                    const grade = getGrade(reactionTime);
+                    result.textContent = `反应时间: ${reactionTime} 毫秒，当前得分: ${score}，评分: ${grade}`;
                 }
-            }, Math.random() * 1500 + 500); // 随机延迟0.5秒到2秒
+                target.remove();
+                createTarget(isTrueTarget);
+            });
+
+            startTime = Date.now();
+            setTimeout(() => {
+                if (target.parentElement) {
+                    target.remove();
+                    createTarget(isTrueTarget);
+                }
+            }, targetSpeed);
+
+            if (!isTrueTarget) {
+                setInterval(() => {
+                    target.style.backgroundColor = target.style.backgroundColor === '#9e9e9e' ? '#ff5252' : '#9e9e9e';
+                }, 500);
+            }
         }
 
-        function hideTarget() {
-            const target = document.getElementById('target');
-            target.style.display = 'none';
-            targetVisible = false;
+        function moveTarget(target) {
+            const maxX = gameContainer.clientWidth - targetSize;
+            const maxY = gameContainer.clientHeight - targetSize;
+
+            function randomPosition() {
+                const randomX = Math.floor(Math.random() * maxX);
+                const randomY = Math.floor(Math.random() * maxY);
+                target.style.left = randomX + 'px';
+                target.style.top = randomY + 'px';
+                target.style.display = 'block';
+            }
+
+            randomPosition();
+            setInterval(randomPosition, targetSpeed);
+        }
+
+        function triggerRandomEvent() {
+            const eventType = Math.random();
+            if (eventType < 0.5) {
+                // 屏幕旋转
+                body.style.transform = 'rotate(180deg)';
+                setTimeout(() => {
+                    body.style.transform = 'rotate(0deg)';
+                }, 1000);
+            } else {
+                // 目标临时消失
+                document.querySelectorAll('.target').forEach(target => target.style.display = 'none');
+                setTimeout(() => {
+                    document.querySelectorAll('.target').forEach(target => target.style.display = 'block');
+                }, 1000);
+            }
+        }
+
+        function getGrade(reactionTime) {
+            if (reactionTime < 200) return 'A';
+            if (reactionTime < 250) return 'B';
+            if (reactionTime < 300) return 'C';
+            if (reactionTime < 350) return 'D';
+            if (reactionTime < 400) return 'E';
+            return 'F';
         }
 
         function endGame() {
-            clearInterval(timerInterval);
-            document.getElementById('gameArea').style.display = 'none';
-            alert(`游戏结束！您的最终积分为: ${score}`);
-            document.getElementById('startButton').disabled = false;
-            updateLeaderboard(score);
-        }
-
-        function updateLeaderboard(newScore) {
-            leaderboard.push(newScore);
-            leaderboard.sort((a, b) => b - a);
-            leaderboard = leaderboard.slice(0, 10); // 保留前10名
-            localStorage.setItem('leaderboard', JSON.stringify(leaderboard));
-            renderLeaderboard();
-        }
-
-        function renderLeaderboard() {
-            const leaderboardList = document.getElementById('leaderboardList');
-            leaderboardList.innerHTML = '';
-            leaderboard.forEach((score, index) => {
-                const li = document.createElement('li');
-                li.innerText = `${index + 1}. ${score}分`;
-                leaderboardList.appendChild(li);
-            });
-        }
-
-        document.getElementById('target').addEventListener('click', function(event) {
-            if (timeLeft > 0) {
-                score += 10;
-                document.getElementById('score').innerText = `积分: ${score}`;
-                hideTarget();
-                spawnTarget();
+            clearInterval(gameInterval);
+            document.querySelectorAll('.target').forEach(target => target.remove());
+            let resultText = `游戏结束！你的总得分是: ${score}`;
+            if (score > 25) {
+                const averageReactionTime = totalReactionTime / clickCount;
+                const overallGrade = getGrade(averageReactionTime);
+                resultText += `，平均反应时间: ${averageReactionTime.toFixed(2)} 毫秒，整体评分: ${overallGrade}`;
+            } else {
+                resultText += `。得分未达到25，无法给出评分。`;
             }
-            event.stopPropagation(); // 防止点击事件冒泡到document
-        });
-
-        document.addEventListener('click', function() {
-            clickCount++;
-            if (clickCount > 50) {
-                alert('检测到作弊行为，游戏结束！');
-                endGame();
-            }
-        });
-
-        // 初始化排行榜
-        renderLeaderboard();
-
-        // 自由发挥：添加背景音乐
-        const audio = new Audio('https://www.soundjay.com/button/sounds/beep-07.mp3');
-        audio.volume = 0.2;
-
-        document.getElementById('target').addEventListener('click', function() {
-            audio.play();
-        });
+            result.textContent = resultText;
+            startButton.style.display = 'block';
+        }
     </script>
 </body>
 </html>
