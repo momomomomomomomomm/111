@@ -88,8 +88,10 @@
     // 反作弊机制变量
     let clickCount = 0;
     let lastClickTime = 0;
+    let lastClickPosition = { x: 0, y: 0 };
     const clickThreshold = 50;
     const timeThreshold = 5; // 毫秒
+    const positionThreshold = 10; // 像素
 
     function setDifficulty() {
         const difficulty = difficultySelector.value;
@@ -162,13 +164,13 @@
     }
 
     function handleClick(event) {
-        if (event.target !== target) {
-            message.textContent = '请不要在目标出现前点击页面其他地方！';
-            return;
-        }
-
         const currentTime = Date.now();
         const timeDifference = currentTime - lastClickTime;
+        const currentClickPosition = { x: event.clientX, y: event.clientY };
+        const positionDifference = Math.sqrt(
+            Math.pow(currentClickPosition.x - lastClickPosition.x, 2) +
+            Math.pow(currentClickPosition.y - lastClickPosition.y, 2)
+        );
 
         // 检测短时间内多次点击
         if (timeDifference < timeThreshold) {
@@ -176,15 +178,25 @@
             return;
         }
 
-        // 检测连续点击
-        clickCount++;
-        if (clickCount > clickThreshold) {
-            message.textContent = '检测到异常点击行为，请勿作弊！';
-            clickCount = 0;
-            return;
+        // 检测同一位置连续点击
+        if (positionDifference < positionThreshold) {
+            clickCount++;
+            if (clickCount >= clickThreshold) {
+                message.textContent = '检测到异常点击行为，请勿作弊！';
+                clickCount = 0;
+                return;
+            }
+        } else {
+            clickCount = 0; // 重置点击计数
         }
 
         lastClickTime = currentTime;
+        lastClickPosition = currentClickPosition;
+
+        if (event.target !== target) {
+            message.textContent = '请不要在目标出现前点击页面其他地方！';
+            return;
+        }
 
         const reactionTime = Date.now() - startTime;
         message.textContent = `反应时间: ${reactionTime} 毫秒`;
