@@ -85,23 +85,23 @@
         /* display: none; */
       }
 
-      @keyframes shack {
-        0% {
-          transform: rotate(0);
-        }
-        25% {
-          transform: rotate(-10deg);
-        }
-        50% {
-          transform: rotate(0);
-        }
-        75% {
-          transform: rotate(10deg);
-        }
-        100% {
-          transform: rotate(0);
-        }
-      }
+      @-webkit-keyframes shack {
+    0% {
+        -webkit-transform: rotate(0);
+    }
+    25% {
+        -webkit-transform: rotate(-10deg);
+    }
+    50% {
+        -webkit-transform: rotate(0);
+    }
+    75% {
+        -webkit-transform: rotate(10deg);
+    }
+    100% {
+        -webkit-transform: rotate(0);
+    }
+}
       #stars {
         position: absolute;
         width: 100%;
@@ -811,7 +811,7 @@ function drawStars() {
 
 
     let myLabels = [
-      "亲爱的婷宝",
+      "秋云宝贝",
       "Merry Christmas",
       "健健康康，平安喜乐",
       "一定要站在你所热爱的世界里闪闪发光",
