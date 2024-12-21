@@ -50,11 +50,25 @@
             background-color: #2980b9;
             transform: scale(1.05);
         }
+        #difficultySelector {
+            margin-top: 20px;
+            padding: 10px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            background-color: #ecf0f1;
+            color: #333;
+        }
     </style>
 </head>
 <body>
 
 <h1>反应力测试游戏</h1>
+<select id="difficultySelector">
+    <option value="easy">简单</option>
+    <option value="medium">中等</option>
+    <option value="hard">困难</option>
+</select>
 <button id="startButton">开始游戏</button>
 <div id="target"></div>
 <div id="message"></div>
@@ -63,6 +77,7 @@
     let target = document.getElementById('target');
     let message = document.getElementById('message');
     let startButton = document.getElementById('startButton');
+    let difficultySelector = document.getElementById('difficultySelector');
     let timeoutId;
     let startTime;
     let bestTime = Infinity;
@@ -70,10 +85,35 @@
     let currentRound = 0;
     let score = 0;
 
+    // 反作弊机制变量
+    let clickCount = 0;
+    let lastClickTime = 0;
+    const clickThreshold = 50;
+    const timeThreshold = 5; // 毫秒
+
+    function setDifficulty() {
+        const difficulty = difficultySelector.value;
+        switch (difficulty) {
+            case 'easy':
+                rounds = 5;
+                break;
+            case 'medium':
+                rounds = 10;
+                break;
+            case 'hard':
+                rounds = 15;
+                break;
+            default:
+                rounds = 5;
+        }
+    }
+
     function startGame() {
+        setDifficulty();
         message.textContent = '';
         target.style.display = 'none';
         startButton.disabled = true;
+        difficultySelector.disabled = true;
         currentRound = 0;
         bestTime = Infinity;
         score = 0;
@@ -122,6 +162,25 @@
     }
 
     function handleClick() {
+        const currentTime = Date.now();
+        const timeDifference = currentTime - lastClickTime;
+
+        // 检测短时间内多次点击
+        if (timeDifference < timeThreshold) {
+            message.textContent = '检测到异常点击行为，请勿作弊！';
+            return;
+        }
+
+        // 检测连续点击
+        clickCount++;
+        if (clickCount > clickThreshold) {
+            message.textContent = '检测到异常点击行为，请勿作弊！';
+            clickCount = 0;
+            return;
+        }
+
+        lastClickTime = currentTime;
+
         const reactionTime = Date.now() - startTime;
         message.textContent = `反应时间: ${reactionTime} 毫秒`;
         target.style.display = 'none'; // 点击后隐藏目标
@@ -139,6 +198,8 @@
     function endGame() {
         message.textContent += `\n游戏结束! 最佳反应时间: ${bestTime} 毫秒\n总得分: ${score}`;
         startButton.disabled = false;
+        difficultySelector.disabled = false;
+        clickCount = 0; // 重置点击计数
     }
 
     // 事件监听器
