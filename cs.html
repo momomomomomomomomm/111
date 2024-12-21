@@ -11,9 +11,15 @@
             justify-content: center;
             align-items: center;
             height: 100vh;
-            background: #74ebd5;
+            background: linear-gradient(135deg, #74ebd5, #acb6e5);
             font-family: 'Arial', sans-serif;
             color: #333;
+            overflow: hidden;
+        }
+        h1 {
+            margin-bottom: 20px;
+            font-size: 36px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
         }
         #target {
             width: 100px;
@@ -21,7 +27,9 @@
             background-color: red;
             border-radius: 10px;
             display: none;
-            position: absolute;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.3s;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
         }
         #message {
             margin-top: 20px;
@@ -36,6 +44,11 @@
             border-radius: 5px;
             background-color: #3498db;
             color: white;
+            transition: background-color 0.3s, transform 0.3s;
+        }
+        #startButton:hover {
+            background-color: #2980b9;
+            transform: scale(1.05);
         }
     </style>
 </head>
@@ -52,24 +65,60 @@
     let startButton = document.getElementById('startButton');
     let timeoutId;
     let startTime;
+    let bestTime = Infinity;
+    let rounds = 5;
+    let currentRound = 0;
+    let score = 0;
 
     function startGame() {
         message.textContent = '';
         target.style.display = 'none';
         startButton.disabled = true;
+        currentRound = 0;
+        bestTime = Infinity;
+        score = 0;
         nextRound();
     }
 
     function nextRound() {
-        let delay = Math.random() * 2000 + 1000; // 1-3秒后显示目标
-        timeoutId = setTimeout(showTarget, delay);
+        if (currentRound < rounds) {
+            currentRound++;
+            let delay = Math.random() * 2000 + 1000;
+            timeoutId = setTimeout(showTarget, delay);
+        } else {
+            endGame();
+        }
     }
 
     function showTarget() {
         target.style.display = 'block';
-        target.style.left = Math.random() * (window.innerWidth - 100) + 'px';
-        target.style.top = Math.random() * (window.innerHeight - 100) + 'px';
+        target.style.backgroundColor = getRandomColor();
+        target.style.position = 'absolute';
+        moveTarget();
         startTime = Date.now();
+    }
+
+    function moveTarget() {
+        const container = document.body;
+        const maxX = container.clientWidth - 100;
+        const maxY = container.clientHeight - 100;
+
+        const randomX = Math.random() * maxX;
+        const randomY = Math.random() * maxY;
+
+        target.style.left = `${randomX}px`;
+        target.style.top = `${randomY}px`;
+
+        setTimeout(moveTarget, 1000);
+    }
+
+    function getRandomColor() {
+        const letters = '0123456789ABCDEF';
+        let color = '#';
+        for (let i = 0; i < 6; i++) {
+            color += letters[Math.floor(Math.random() * 16)];
+        }
+        return color;
     }
 
     function handleClick() {
@@ -77,17 +126,32 @@
         message.textContent = `反应时间: ${reactionTime} 毫秒`;
         target.style.display = 'none'; // 点击后隐藏目标
         clearTimeout(timeoutId);
+
+        // 更新分数
+        score += Math.max(0, 1000 - reactionTime);
+        if (reactionTime < bestTime) {
+            bestTime = reactionTime;
+        }
+
         nextRound();
     }
 
+    function endGame() {
+        message.textContent += `\n游戏结束! 最佳反应时间: ${bestTime} 毫秒\n总得分: ${score}`;
+        startButton.disabled = false;
+    }
+
+    // 事件监听器
     startButton.addEventListener('click', startGame);
     target.addEventListener('click', handleClick);
+
+    // 兼容移动设备
     startButton.addEventListener('touchstart', (e) => {
-        e.preventDefault();
+        e.preventDefault(); // 防止默认行为
         startGame();
     });
     target.addEventListener('touchstart', (e) => {
-        e.preventDefault();
+        e.preventDefault(); // 防止默认行为
         handleClick();
     });
 </script>
