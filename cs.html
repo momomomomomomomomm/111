@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>反应力测试游戏</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: #74ebd5;
+            font-family: 'Arial', sans-serif;
+            color: #333;
+        }
+        #target {
+            width: 100px;
+            height: 100px;
+            background-color: red;
+            border-radius: 10px;
+            display: none;
+            position: absolute;
+        }
+        #message {
+            margin-top: 20px;
+            font-size: 20px;
+            text-align: center;
+        }
+        #startButton {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background-color: #3498db;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+<h1>反应力测试游戏</h1>
+<button id="startButton">开始游戏</button>
+<div id="target"></div>
+<div id="message"></div>
+
+<script>
+    let target = document.getElementById('target');
+    let message = document.getElementById('message');
+    let startButton = document.getElementById('startButton');
+    let timeoutId;
+    let startTime;
+
+    function startGame() {
+        message.textContent = '';
+        target.style.display = 'none';
+        startButton.disabled = true;
+        nextRound();
+    }
+
+    function nextRound() {
+        let delay = Math.random() * 2000 + 1000; // 1-3秒后显示目标
+        timeoutId = setTimeout(showTarget, delay);
+    }
+
+    function showTarget() {
+        target.style.display = 'block';
+        target.style.left = Math.random() * (window.innerWidth - 100) + 'px';
+        target.style.top = Math.random() * (window.innerHeight - 100) + 'px';
+        startTime = Date.now();
+    }
+
+    function handleClick() {
+        const reactionTime = Date.now() - startTime;
+        message.textContent = `反应时间: ${reactionTime} 毫秒`;
+        target.style.display = 'none'; // 点击后隐藏目标
+        clearTimeout(timeoutId);
+        nextRound();
+    }
+
+    startButton.addEventListener('click', startGame);
+    target.addEventListener('click', handleClick);
+    startButton.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        startGame();
+    });
+    target.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        handleClick();
+    });
+</script>
+
+</body>
+</html>
