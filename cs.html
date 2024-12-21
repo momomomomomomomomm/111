@@ -14,8 +14,6 @@
             background-color: #e0f7fa;
             overflow: hidden;
             transition: transform 1s;
-            touch-action: none; /* 禁止滑动 */
-
         }
         #gameContainer {
             text-align: center;
@@ -81,7 +79,7 @@
         const gameContainer = document.getElementById('gameContainer');
         const body = document.body;
         const backgroundMusic = document.getElementById('backgroundMusic');
-        
+
         let gameInterval;
         let gameTime = 0;
         let score = 0;
@@ -89,6 +87,8 @@
         let clickCount = 0;
         let targetCount, targetSize, targetSpeed, maxDelay;
         let lastClickTime = 0;
+        let cheated = false;
+        let startTime = 0;
 
         startButton.addEventListener('click', () => {
             startButton.style.display = 'none';
@@ -97,7 +97,9 @@
             gameTime = 0;
             totalReactionTime = 0;
             clickCount = 0;
+            cheated = false;
             timerDisplay.textContent = '时间: 0 秒';
+
             const currentDifficulty = difficultySelect.value;
             switch (currentDifficulty) {
                 case 'easy':
@@ -125,6 +127,7 @@
                     targetSpeed = 1000;
                     break;
             }
+
             backgroundMusic.play();
             gameInterval = setInterval(() => {
                 gameTime++;
@@ -136,6 +139,7 @@
                     triggerRandomEvent();
                 }
             }, 1000);
+
             spawnTargets();
         });
 
@@ -156,18 +160,20 @@
             gameContainer.appendChild(target);
             moveTarget(target);
 
+            startTime = Date.now(); // Reset start time when a new target is created
+
             target.addEventListener('click', () => {
                 const currentTime = Date.now();
                 const reactionTime = currentTime - startTime;
-                if (currentTime - lastClickTime < 5) {
+                if (currentTime - lastClickTime < 10) {
                     alert('检测到异常的快速点击，可能存在作弊行为。');
-                    window.close();
+                    cheated = true;
                     return;
                 }
                 lastClickTime = currentTime;
-                if (reactionTime < 5) {
+                if (reactionTime < 10) {
                     alert('检测到异常的反应时间，可能存在作弊行为。');
-                    window.close();
+                    cheated = true;
                     return;
                 }
                 if (isTrueTarget) {
@@ -181,7 +187,6 @@
                 createTarget(isTrueTarget);
             });
 
-            startTime = Date.now();
             setTimeout(() => {
                 if (target.parentElement) {
                     target.remove();
@@ -255,7 +260,10 @@
             backgroundMusic.currentTime = 0;
             document.querySelectorAll('.target').forEach(target => target.remove());
             let resultText = `游戏结束！你的总得分是: ${score}`;
-            if (score > 25) {
+            if (cheated) {
+                resultText += `。已检测到作弊行为，成绩归零。`;
+                score = 0;
+            } else if (score > 25) {
                 const averageReactionTime = totalReactionTime / clickCount;
                 const overallGrade = getGrade(averageReactionTime);
                 resultText += `，平均反应时间: ${averageReactionTime.toFixed(2)} 毫秒，整体评分: ${overallGrade}`;
