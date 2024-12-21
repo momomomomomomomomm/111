@@ -14,6 +14,8 @@
             background-color: #e0f7fa;
             overflow: hidden;
             transition: transform 1s;
+            touch-action: none; /* 禁止滑动 */
+
         }
         #gameContainer {
             text-align: center;
@@ -70,7 +72,7 @@
         <div id="result"></div>
         <div id="timer">时间: 0 秒</div>
     </div>
-
+    <audio id="backgroundMusic" src="http://music.163.com/song/media/outer/url?id=1910903322.mp3" loop></audio>
     <script>
         const startButton = document.getElementById('startButton');
         const difficultySelect = document.getElementById('difficultySelect');
@@ -78,13 +80,15 @@
         const timerDisplay = document.getElementById('timer');
         const gameContainer = document.getElementById('gameContainer');
         const body = document.body;
-
+        const backgroundMusic = document.getElementById('backgroundMusic');
+        
         let gameInterval;
         let gameTime = 0;
         let score = 0;
         let totalReactionTime = 0;
         let clickCount = 0;
         let targetCount, targetSize, targetSpeed, maxDelay;
+        let lastClickTime = 0;
 
         startButton.addEventListener('click', () => {
             startButton.style.display = 'none';
@@ -94,9 +98,8 @@
             totalReactionTime = 0;
             clickCount = 0;
             timerDisplay.textContent = '时间: 0 秒';
-
-            const difficulty = difficultySelect.value;
-            switch (difficulty) {
+            const currentDifficulty = difficultySelect.value;
+            switch (currentDifficulty) {
                 case 'easy':
                     maxDelay = 5000;
                     targetSize = 100;
@@ -122,18 +125,17 @@
                     targetSpeed = 1000;
                     break;
             }
-
+            backgroundMusic.play();
             gameInterval = setInterval(() => {
                 gameTime++;
                 timerDisplay.textContent = `时间: ${gameTime} 秒`;
                 if (gameTime >= 30) {
                     endGame();
                 }
-                if (difficulty === 'hell' && Math.random() < 0.1) {
+                if (currentDifficulty === 'hell' && Math.random() < 0.1) {
                     triggerRandomEvent();
                 }
             }, 1000);
-
             spawnTargets();
         });
 
@@ -155,8 +157,20 @@
             moveTarget(target);
 
             target.addEventListener('click', () => {
+                const currentTime = Date.now();
+                const reactionTime = currentTime - startTime;
+                if (currentTime - lastClickTime < 5) {
+                    alert('检测到异常的快速点击，可能存在作弊行为。');
+                    window.close();
+                    return;
+                }
+                lastClickTime = currentTime;
+                if (reactionTime < 5) {
+                    alert('检测到异常的反应时间，可能存在作弊行为。');
+                    window.close();
+                    return;
+                }
                 if (isTrueTarget) {
-                    const reactionTime = Date.now() - startTime;
                     score++;
                     totalReactionTime += reactionTime;
                     clickCount++;
@@ -187,8 +201,20 @@
             const maxY = gameContainer.clientHeight - targetSize;
 
             function randomPosition() {
-                const randomX = Math.floor(Math.random() * maxX);
-                const randomY = Math.floor(Math.random() * maxY);
+                let randomX, randomY;
+                let overlapping;
+                do {
+                    overlapping = false;
+                    randomX = Math.floor(Math.random() * maxX);
+                    randomY = Math.floor(Math.random() * maxY);
+                    document.querySelectorAll('.target').forEach(existingTarget => {
+                        const existingX = parseInt(existingTarget.style.left);
+                        const existingY = parseInt(existingTarget.style.top);
+                        if (Math.abs(existingX - randomX) < targetSize && Math.abs(existingY - randomY) < targetSize) {
+                            overlapping = true;
+                        }
+                    });
+                } while (overlapping);
                 target.style.left = randomX + 'px';
                 target.style.top = randomY + 'px';
                 target.style.display = 'block';
@@ -201,13 +227,11 @@
         function triggerRandomEvent() {
             const eventType = Math.random();
             if (eventType < 0.5) {
-                // 屏幕旋转
                 body.style.transform = 'rotate(180deg)';
                 setTimeout(() => {
                     body.style.transform = 'rotate(0deg)';
                 }, 1000);
             } else {
-                // 目标临时消失
                 document.querySelectorAll('.target').forEach(target => target.style.display = 'none');
                 setTimeout(() => {
                     document.querySelectorAll('.target').forEach(target => target.style.display = 'block');
@@ -216,22 +240,32 @@
         }
 
         function getGrade(reactionTime) {
-            if (reactionTime < 200) return 'A';
-            if (reactionTime < 250) return 'B';
-            if (reactionTime < 300) return 'C';
-            if (reactionTime < 350) return 'D';
-            if (reactionTime < 400) return 'E';
+            if (reactionTime < 150) return 'S+';
+            if (reactionTime < 200) return 'S';
+            if (reactionTime < 250) return 'A';
+            if (reactionTime < 300) return 'B';
+            if (reactionTime < 350) return 'C';
+            if (reactionTime < 400) return 'D';
             return 'F';
         }
 
         function endGame() {
             clearInterval(gameInterval);
+            backgroundMusic.pause();
+            backgroundMusic.currentTime = 0;
             document.querySelectorAll('.target').forEach(target => target.remove());
             let resultText = `游戏结束！你的总得分是: ${score}`;
             if (score > 25) {
                 const averageReactionTime = totalReactionTime / clickCount;
                 const overallGrade = getGrade(averageReactionTime);
                 resultText += `，平均反应时间: ${averageReactionTime.toFixed(2)} 毫秒，整体评分: ${overallGrade}`;
+                if (currentDifficulty === 'hell') {
+                    if (overallGrade === 'S') {
+                        resultText += `\n孩子你太牛逼了，加我QQ:3557197172领取10块！`;
+                    } else if (overallGrade === 'S+') {
+                        resultText += `\n你这反应速度还是人类吗？加我QQ:3557197172领取18块！`;
+                    }
+                }
             } else {
                 resultText += `。得分未达到25，无法给出评分。`;
             }
