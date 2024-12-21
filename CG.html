@@ -38,25 +38,14 @@
             height: 50px;
             border-radius: 50%;
             cursor: pointer;
-            transition: transform 0.3s ease, background-color 0.3s ease;
+            transition: transform 0.2s ease;
             animation: spin 1s linear infinite;
         }
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
         .clickEffect {
-            animation: clickScale 0.3s ease-out forwards;
-        }
-        @keyframes clickScale {
-            0% {
-                transform: scale(1);
-            }
-            50% {
-                transform: scale(1.5);
-            }
-            100% {
-                transform: scale(1);
-            }
+            transform: scale(1.2);
         }
         #score {
             position: absolute;
@@ -129,7 +118,6 @@
         window.onload = function() {
             alert('ACE系统正在检测中');
         };
-
         const gameContainer = document.getElementById('gameContainer');
         const scoreDisplay = document.getElementById('score');
         const timerDisplay = document.getElementById('timer');
@@ -142,17 +130,14 @@
         let gameInterval;
         let targetInterval;
         let targetSpeed = 1000;
-
         startButton.addEventListener('click', () => {
             startGame(difficultySelect.value);
         });
-
         restartButton.addEventListener('click', () => {
             restartButton.style.display = 'none';
             difficultySelect.style.display = 'block';
             startButton.style.display = 'block';
         });
-
         function startGame(difficulty) {
             score = 0;
             timeLeft = 30;
@@ -169,7 +154,7 @@
                     targetSpeed = 1000;
                     break;
                 case 'hard':
-                    targetSpeed = 500;
+                    targetSpeed = 800;
                     break;
             }
             gameInterval = setInterval(() => {
@@ -181,7 +166,6 @@
             }, 1000);
             spawnTarget();
         }
-
         function spawnTarget() {
             if (targetInterval) clearInterval(targetInterval);
             const target = document.createElement('div');
@@ -192,22 +176,18 @@
             target.addEventListener('click', () => {
                 score++;
                 scoreDisplay.textContent = `得分: ${score}`;
-
                 // 添加点击特效类
                 target.classList.add('clickEffect');
-
-                // 在动画结束后移除目标
-                target.addEventListener('animationend', () => {
+                setTimeout(() => {
                     target.remove();
                     spawnTarget();
-                }, { once: true });
+                }, 20); // 移除目标并生成新目标
             });
             targetInterval = setInterval(() => {
                 setRandomPosition(target);
                 setRandomColor(target);
             }, targetSpeed);
         }
-
         function setRandomPosition(element) {
             const maxX = gameContainer.clientWidth - 50;
             const maxY = gameContainer.clientHeight - 50;
@@ -216,12 +196,10 @@
             element.style.left = `${randomX}px`;
             element.style.top = `${randomY}px`;
         }
-
         function setRandomColor(element) {
             const randomColor = `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}`;
             element.style.backgroundColor = randomColor;
         }
-
         function getGrade(score) {
             if (score >= 80) return 'MVP/超神';
             if (score >= 50) return 'S/人工客服';
@@ -231,7 +209,6 @@
             if (score >= 10) return 'D/小废物';
             return 'E/废物';
         }
-
         function endGame() {
             clearInterval(gameInterval);
             clearInterval(targetInterval);
