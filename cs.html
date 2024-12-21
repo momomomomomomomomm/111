@@ -15,6 +15,7 @@
             font-family: 'Arial', sans-serif;
             color: #333;
             overflow: hidden;
+            position: relative;
         }
         h1 {
             margin-bottom: 20px;
@@ -30,6 +31,7 @@
             cursor: pointer;
             transition: background-color 0.3s, transform 0.3s;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            z-index: 1001;
         }
         #message {
             margin-top: 20px;
@@ -59,6 +61,37 @@
             background-color: #ecf0f1;
             color: #333;
         }
+        #overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            z-index: 1000;
+        }
+        #scoreBoard {
+            margin-top: 20px;
+            font-size: 20px;
+            text-align: center;
+        }
+        #timer {
+            margin-top: 20px;
+            font-size: 20px;
+            text-align: center;
+        }
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 28px;
+            }
+            #startButton, #difficultySelector {
+                font-size: 14px;
+            }
+            #message, #scoreBoard, #timer {
+                font-size: 18px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -72,20 +105,30 @@
 <button id="startButton">开始游戏</button>
 <div id="target"></div>
 <div id="message"></div>
+<div id="scoreBoard"></div>
+<div id="timer"></div>
+<div id="overlay"></div>
+
+<audio id="backgroundMusic" src="background.mp3" loop></audio>
+<audio id="clickSound" src="click.mp3"></audio>
 
 <script>
     let target = document.getElementById('target');
     let message = document.getElementById('message');
     let startButton = document.getElementById('startButton');
     let difficultySelector = document.getElementById('difficultySelector');
+    let scoreBoard = document.getElementById('scoreBoard');
+    let timer = document.getElementById('timer');
+    let overlay = document.getElementById('overlay');
+    let backgroundMusic = document.getElementById('backgroundMusic');
+    let clickSound = document.getElementById('clickSound');
     let timeoutId;
     let startTime;
     let bestTime = Infinity;
+    let totalTime = 0;
     let rounds = 5;
     let currentRound = 0;
     let score = 0;
-
-    // 反作弊机制变量
     let clickCount = 0;
     let lastClickTime = 0;
     let lastClickPosition = { x: 0, y: 0 };
@@ -113,12 +156,18 @@
     function startGame() {
         setDifficulty();
         message.textContent = '';
+        scoreBoard.textContent = '';
+        timer.textContent = '';
         target.style.display = 'none';
         startButton.disabled = true;
         difficultySelector.disabled = true;
+        overlay.style.display = 'block';
         currentRound = 0;
         bestTime = Infinity;
         score = 0;
+        totalTime = 0;
+        clickCount = 0;
+        backgroundMusic.play();
         nextRound();
     }
 
@@ -175,6 +224,7 @@
         // 检测短时间内多次点击
         if (timeDifference < timeThreshold) {
             message.textContent = '检测到异常点击行为，请勿作弊！';
+            endGame();
             return;
         }
 
@@ -183,7 +233,7 @@
             clickCount++;
             if (clickCount >= clickThreshold) {
                 message.textContent = '检测到异常点击行为，请勿作弊！';
-                clickCount = 0;
+                endGame();
                 return;
             }
         } else {
@@ -198,6 +248,7 @@
             return;
         }
 
+        clickSound.play();
         const reactionTime = Date.now() - startTime;
         message.textContent = `反应时间: ${reactionTime} 毫秒`;
         target.style.display = 'none'; // 点击后隐藏目标
@@ -213,15 +264,27 @@
     }
 
     function endGame() {
-        message.textContent += `\n游戏结束! 最佳反应时间: ${bestTime} 毫秒\n总得分: ${score}`;
+        totalTime = Date.now() - startTime;
+        message.textContent += `\n游戏结束! 最佳反应时间: ${bestTime} 毫秒\n总游戏时间: ${totalTime} 毫秒\n总得分: ${score}`;
+        scoreBoard.textContent = `总得分: ${score}`;
+        timer.textContent = `总游戏时间: ${totalTime} 毫秒`;
         startButton.disabled = false;
         difficultySelector.disabled = false;
+        overlay.style.display = 'none';
+        backgroundMusic.pause();
+        backgroundMusic.currentTime = 0;
         clickCount = 0; // 重置点击计数
     }
 
     // 事件监听器
     startButton.addEventListener('click', startGame);
-    document.addEventListener('click', handleClick); // 监听整个页面的点击事件
+    document.addEventListener('click', (event) => {
+        if (event.target === target) {
+            handleClick(event);
+        } else if (overlay.style.display === 'block') {
+            message.textContent = '请不要在目标出现前点击页面其他地方！';
+        }
+    });
 
     // 兼容移动设备
     startButton.addEventListener('touchstart', (e) => {
@@ -230,7 +293,11 @@
     });
     document.addEventListener('touchstart', (e) => {
         e.preventDefault(); // 防止默认行为
-        handleClick(e);
+        if (e.target === target) {
+            handleClick(e);
+        } else if (overlay.style.display === 'block') {
+            message.textContent = '请不要在目标出现前点击页面其他地方！';
+        }
     });
 </script>
 
