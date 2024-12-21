@@ -161,7 +161,12 @@
         return color;
     }
 
-    function handleClick() {
+    function handleClick(event) {
+        if (event.target !== target) {
+            message.textContent = '请不要在目标出现前点击页面其他地方！';
+            return;
+        }
+
         const currentTime = Date.now();
         const timeDifference = currentTime - lastClickTime;
 
@@ -204,16 +209,16 @@
 
     // 事件监听器
     startButton.addEventListener('click', startGame);
-    target.addEventListener('click', handleClick);
+    document.addEventListener('click', handleClick); // 监听整个页面的点击事件
 
     // 兼容移动设备
     startButton.addEventListener('touchstart', (e) => {
         e.preventDefault(); // 防止默认行为
         startGame();
     });
-    target.addEventListener('touchstart', (e) => {
+    document.addEventListener('touchstart', (e) => {
         e.preventDefault(); // 防止默认行为
-        handleClick();
+        handleClick(e);
     });
 </script>
 
